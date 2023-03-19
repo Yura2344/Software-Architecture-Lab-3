@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Car list</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <h2>Car list</h2>
+    <form name="carForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group">
+            <label for="company">Company:</label>
+            <input class="form-control" name="company" />
+        </div>
+        <div class="form-group">
+            <label for="model">Model:</label>
+            <input class="form-control" name="model" />
+        </div>
+        <div class="form-group">
+            <label for="enginePower">Engine power(h.p.):</label>
+            <input class="form-control" name="enginePower" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+            <a id="reset" class="btn btn-sm btn-primary">Reset</a>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Company</th>
+                <th>Model</th>
+                <th>Engine power(h.p.)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+   
+    <script>
+        async function GetCars() {
+            const response = await fetch("/api/cars", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const cars = await response.json();
+                let rows = document.querySelector("tbody"); 
+                cars.forEach(car => {
+                    rows.append(row(car));
+                });
+            }
+        }
+        async function GetCar(id) {
+            const response = await fetch("/api/cars/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const car = await response.json();
+                const form = document.forms["carForm"];
+                form.elements["id"].value = car._id;
+                form.elements["company"].value = car.company;
+                form.elements["model"].value = car.model;
+                form.elements["enginePower"].value = car.enginePower;
+            }
+        }
+        async function CreateCar(carCompany, carModel, carEnginePower) {
+  
+            const response = await fetch("api/cars", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    company: carCompany,
+                    model: carModel,
+                    enginePower: parseInt(carEnginePower, 10)
+                })
+            });
+            if (response.ok === true) {
+                const car = await response.json();
+                reset();
+                document.querySelector("tbody").append(row(car));
+            }
+        }
+        async function EditCar(carId, carCompany, carModel, carEnginePower) {
+            const response = await fetch("api/cars", {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: carId,
+                    company: carCompany,
+                    model: carModel,
+                    enginePower: parseInt(carEnginePower, 10)
+                })
+            });
+            if (response.ok === true) {
+                const car = await response.json();
+                reset();
+                document.querySelector("tr[data-rowid='" + car._id + "']").replaceWith(row(car));
+            }
+        }
+        async function DeleteCar(id) {
+            const response = await fetch("/api/cars/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const car = await response.json();
+                document.querySelector("tr[data-rowid='" + car._id + "']").remove();
+            }
+        }
+  
+        function reset() {
+            const form = document.forms["carForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+
+        function row(car) {
+  
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", car._id);
+  
+            const idTd = document.createElement("td");
+            idTd.append(car._id);
+            tr.append(idTd);
+  
+            const companyTd = document.createElement("td");
+            companyTd.append(car.company);
+            tr.append(companyTd);
+
+            const modelTd = document.createElement("td");
+            modelTd.append(car.company);
+            tr.append(modelTd);
+  
+            const powerTd = document.createElement("td");
+            powerTd.append(car.enginePower);
+            tr.append(powerTd);
+              
+            const linksTd = document.createElement("td");
+  
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", car._id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Edit");
+            editLink.addEventListener("click", e => {
+  
+                e.preventDefault();
+                GetCar(car._id);
+            });
+            linksTd.append(editLink);
+  
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", car._id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Delete");
+            removeLink.addEventListener("click", e => {
+  
+                e.preventDefault();
+                DeleteCar(car._id);
+            });
+  
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+  
+            return tr;
+        }
+        document.getElementById("reset").addEventListener("click", function (e) {
+            e.preventDefault();
+            reset();
+        })
+  
+        document.forms["carForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["carForm"];
+            const id = form.elements["id"].value;
+            const company = form.elements["company"].value;
+            const model = form.elements["model"].value;
+            const enginePower = form.elements["enginePower"].value;
+            if (id == 0)
+                CreateCar(company, model, enginePower);
+            else
+                EditCar(id, company, model, enginePower);
+        });
+  
+        GetCars();
+    </script>
+</body>
+</html>
